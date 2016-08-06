@@ -92,7 +92,13 @@ class NativeBayes:
             vector += datas  # 属于特定label的word个数记录
             self.vocable_pr_array += datas  # 全局的word个数记录
         total_word_count = sum(self.vocable_pr_array)  # 当前vocable_pr_array中记录的还是全局的word个数
-        self.vocable_pr_array /= float(total_word_count)  # 得到每一个词汇的全局概率
+        # 下面的算法错误,计算每一个词汇的全局概率不应该想当然的把词c出现的概率除以总的词汇数
+        # 注意一个样本是一个数组
+        # 所以应该除以样本数，也就是数组的个数
+        # 如果除以总的词汇数, 则与之前计算p(c|l1)时将矛盾
+        # p(c|l1)中是用数组的个数,而不是属于l1的词汇数
+        # self.vocable_pr_array /= float(total_word_count)  # 得到每一个词汇的全局概率
+        self.vocable_pr_array /= len(a_data_set)  # 得到每一个词汇的全局概率
 
         for label in self.label2vocable_pr_array:
             self.label2vocable_pr_array[label] /= float(label2word_count[label])
