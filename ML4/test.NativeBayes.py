@@ -4,12 +4,9 @@ from typing import List
 from typing import Tuple
 from typing import TypeVar
 
-import ML4.calculate
 import ML4.NativeBayes
 
-__author__ = 'norsd@163.com'
-
-T = TypeVar('T')
+__author__ = 'di_shen_sh@gmail.com'
 
 
 def create_data_set()->Tuple[List, List]:
@@ -33,8 +30,13 @@ def create_data_set()->Tuple[List, List]:
     labels = [0, 1, 0, 1, 0, 1]
     return datas, labels
 
-(data_set, labels) = create_data_set()
-test = ML4.calculate.calculate_native_bayes(data_set, labels)
-print(test[0])
-print(test[1])
+nb = ML4.NativeBayes.NativeBayes()
+(datas, label) = create_data_set()
+nb.add_samples(datas, label)
+print(nb.pr_label)
+print(nb.pr_word_in_label[label[0]])
+print(nb.pr_word_in_label[label[1]])
+result = nb.test(['my', 'dog', 'has', 'flea', 'problems', 'help', 'please'])
+
+print(result)
 
