@@ -5,6 +5,7 @@ from typing import Tuple
 from typing import TypeVar
 
 import ML4.NativeBayes
+import ML4.NativeBayes2
 
 __author__ = 'di_shen_sh@gmail.com'
 
@@ -30,7 +31,8 @@ def create_data_set()->Tuple[List, List]:
     labels = [0, 1, 0, 1, 0, 1]
     return datas, labels
 
-nb = ML4.NativeBayes.NativeBayes()
+#  nb = ML4.NativeBayes.NativeBayes()
+nb = ML4.NativeBayes2.NativeBayes2()
 (datas, label) = create_data_set()
 nb.add_samples(datas, label)
 print(nb.pr_label)

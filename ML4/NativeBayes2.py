@@ -1,16 +1,19 @@
 # coding:utf-8
 from numpy import *
+from norlib.Exception import *
 from typing import Dict
 from typing import List
 from typing import Tuple
 from typing import TypeVar
+
+
 
 __auth__ = 'di_shen_sh@gmail.com'
 
 T = TypeVar('T')
 
 
-class NativeBayes:
+class NativeBayes2:
     #  注意描述的语句:
     #  "my", "my", "dog"
     #  上面有2个词汇(vocable)分别是"my","dog"
@@ -58,22 +61,12 @@ class NativeBayes:
         return
 
     def __create_vocable(self, a_data_set, a_labels):
-        self.pr_label = {}
-        label2word_count = {}  # 记录每一个label拥有word的个数
-        for label in a_labels:
-            self.pr_label[label] = 0
-            label2word_count[label] = 0
-
         self.vocable_set = set()
         word_count = 0
         for i in range(len(a_data_set)):
-            words = a_data_set[i]
-            label = a_labels[i]
-            label2word_count[label] += len(words)  # 得到label2word_count
-            self.vocable_set |= set(words)
+            self.vocable_set |= set(a_data_set[i])
         self.vocable_list = list(self.vocable_set)
         self.vocable_list.sort()
-        self.vocable_pr_array = zeros(len(self.vocable_list))
 
         self.vocable_index2name = {}
         self.vocable_name2index = {}
@@ -81,11 +74,19 @@ class NativeBayes:
             self.vocable_index2name.setdefault(i, self.vocable_list[i])
             self.vocable_name2index.setdefault(self.vocable_list[i], i)
 
-        self.vocable_pr_array = zeros(len(self.vocable_list))  # 先填入每一个词汇出现的个数
+        self.pr_label = {}
+        label2word_count = {}  # 记录每一个label拥有word的个数
+        for label in a_labels:
+            self.pr_label[label] = 0
+        for label in self.pr_label:  # 注意是dictionary,所以label不会重复
+            label2word_count[label] = len(self.vocable_list)
+
+        self.vocable_pr_array = ones(len(self.vocable_list)) + ones(len(self.vocable_list))# 先填入每一个词汇出现的个数
         for i in range(len(a_data_set)):
             label = a_labels[i]
             datas = self.__words_to_standard_sample_vector(a_data_set[i])
-            vector = self.label2vocable_pr_array.setdefault(label, zeros(len(self.vocable_list)))
+            label2word_count[label] += sum(datas)
+            vector = self.label2vocable_pr_array.setdefault(label, ones(len(self.vocable_list)))
             vector += datas  # 属于特定label的word个数记录
             self.vocable_pr_array += datas  # 全局的word个数记录
         total_word_count = sum(self.vocable_pr_array)  # 当前vocable_pr_array中记录的还是全局的word个数
@@ -95,6 +96,14 @@ class NativeBayes:
         for label in self.label2vocable_pr_array:
             self.label2vocable_pr_array[label] /= float(label2word_count[label])
             self.pr_label[label] = label2word_count[label] / float(total_word_count)
+
+    def __filter_words(self, a_words: List[str])->List[str]:
+        """
+        从a_words中过滤掉vocable_set不存在的
+        :param a_words:
+        :return: 过滤掉之后的List
+        """
+        return [w for w in a_words if w in self.vocable_set]
 
     def __words_to_standard_sample_vector(self, a_words: List) -> array:
         """
@@ -128,7 +137,7 @@ class NativeBayes:
                 pr = self.pr_word_in_label[a_label][word]
                 vector[i] = pr
             else:
-                raise "样本中没有{0}这个词".format(word)
+                raise StringException("样本中没有{0}这个词", word)
         return vector
 
     def __to_word_pr(self, a_words: List) -> array:
@@ -146,7 +155,7 @@ class NativeBayes:
                 pr = self.vocable_pr_array[index]
                 vector[i] = pr
             else:
-                raise "样本中没有{0}这个词".format(word)
+                raise StringException("样本中没有{0}这个词", word)
         return vector
 
     def test(self, a_ω) -> Dict:
@@ -155,14 +164,15 @@ class NativeBayes:
         :param a_ω:
         :return: a_ω属于各个label的概率
         """
+        ω = self.__filter_words(a_ω)
         dt_ret = {}
         error_code_overflow = False  # 设为True将观测到下溢出
         #  由于很多小数相乘引起的下溢出
         if error_code_overflow:
-            pr_w = prod(self.__to_word_pr(a_ω))
+            pr_w = prod(self.__to_word_pr(ω))
             print("pr_w: {0}".format(pr_w))
             for l in self.pr_label:
-                word_vector = self.__to_word_pr_in_label(a_ω, l)
+                word_vector = self.__to_word_pr_in_label(ω, l)
                 pr = prod(word_vector) * self.pr_label[l]
                 print("{0} pr_word:{1}".format(l, prod(word_vector)))
                 print("{0} pr_word*pr_label:{1}".format(l, pr))
@@ -170,18 +180,23 @@ class NativeBayes:
                 pr = pr / pr_w
                 dt_ret[l] = pr
         else:
-            pr_w_arr = self.__to_word_pr(a_ω)
+            pr_w_arr = self.__to_word_pr(ω)
+            p = 0
+            label = None
             for l in self.pr_label:
-                word_vector = self.__to_word_pr_in_label(a_ω, l)
+                word_vector = self.__to_word_pr_in_label(ω, l)
                 pr_arr = word_vector * self.pr_label[l]
                 pr_arr = pr_arr / pr_w_arr
                 dt_ret[l] = prod(pr_arr)
+                if dt_ret[l] > p:
+                    label = l
+                    p = dt_ret[l]
                 # print("{0}: w|l:      {1}".format(l, word_vector))
                 # print("{0}: label_pr: {1}".format(l, self.pr_label[l]))
                 # print("{0}: pr_arr:   {1}".format(l, pr_arr))
                 # print("{0}: pr_w_arr: {1}".format(l, pr_w_arr))
                 # print("{0}: result:   {1}".format(l, test_arr))
-        return dt_ret
+        return (dt_ret, label)
 
 
 
