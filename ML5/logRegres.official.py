@@ -1,9 +1,11 @@
 __author__ = 'di_shen_sh@163.com'
 
+import os
+
 from numpy import *
 
 def loadDataSet(a_sampleFilePath):
-    print a_sampleFilePath
+    print(a_sampleFilePath)
     dataMat = []; labelMat = []
     fr = open(a_sampleFilePath)
     for line in fr.readlines():
@@ -31,7 +33,8 @@ def gradAscent(dataMatIn, classLabels, vtWeights = [] ):
         weights = weights + alpha * dataMatrix.transpose()*error
         for i in range(n):
             vtWeights[i].append(array(weights)[i][0])
-
+    print(shape(error))
+    print(shape(dataMatrix.transpose()))
     return weights
 
 def plotBestFit(dataMat, labelMat):
@@ -53,7 +56,14 @@ def plotBestFit(dataMat, labelMat):
     ax.scatter(xcord2, ycord2, s=30, c='green')
     x = arange(-3.0, 3.0, 0.1)
     y = (-weights[0]-weights[1]*x)/weights[2]
-    print weights
+    print(weights)
     ax.plot(x, y)
-    plt.xlabel('X1'); plt.ylabel('X2');
+    plt.xlabel('X1'); plt.ylabel('X2')
     plt.show()
+
+
+# Test
+script_path = os.path.realpath(__file__)
+script_dir = os.path.dirname(script_path)
+dataArr, labelMat = loadDataSet("{0}/{1}".format(script_dir, "testSet.txt"))
+print(gradAscent(dataArr, labelMat))
